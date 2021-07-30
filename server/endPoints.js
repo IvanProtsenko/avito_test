@@ -36,7 +36,12 @@ const createChat = async(req, res) => {
         chat.users = req.body.users;
         chat.created_at = new Date();
         let users = await userModel.find();
-        if(users.find(chat.users[0]) && users.find(chat.users[1])) {
+        usersId = [];
+        users.forEach(element => {
+            usersId.push(element._id);
+        });
+        if((usersId.indexOf(chat.users[0]) != -1) && (usersId.indexOf(chat.users[1]) != -1)) {
+            console.log("saved");
             chat.save();
             res.status(200);
             res.json(chat._id);
@@ -54,7 +59,24 @@ const createChat = async(req, res) => {
 const sendMessage = async(req, res) => {
     console.log("sendMessage");
     try {
-        if(chatModel.find({id: req.body.chat}) && userModel.find({id: req.body.author})) {
+        let users = await userModel.find();
+        usersId = [];
+        users.forEach(element => {
+            usersId.push(element._id);
+        });
+        let chats = await chatModel.find();
+        chatsId = [];
+        chats.forEach(element => {
+            chatsId.push(element._id);
+        });
+        let author = false, chat = false;
+        for(let i = 0; i < usersId.length; i++) { // first used indexOf, but here doesnt work because of strict equality
+            if(usersId[i] == req.body.author) author = true;
+        }
+        for(let i = 0; i < chatsId.length; i++) {
+            if(chatsId[i] == req.body.chat) chat = true;
+        }
+        if(chat && author) {
             message = await new messageModel();
             message.chat = req.body.chat;
             message.author = req.body.author;
@@ -77,12 +99,17 @@ const sendMessage = async(req, res) => {
 const getChats = async(req, res) => {
     console.log("getChats");
     try {
-        let user = userModel.find({id: req.body.userId});
+        let user = userModel.find({id: req.body.user});
         if(user) {
             let allChats = await chatModel.find();
             let chats = [];
+            let chatUsers;
             for(let i = 0; i < allChats.length; i++) {
-                if(allChats[i].users.indexOf(req.body.userId) != -1) chats.push(allChats[i]);
+                chatUsers = allChats[i].users;
+                console.log(chatUsers);
+                for(let j = 0; j < 2; j++) {
+                    if(chatUsers[j] == req.body.user) chats.push(allChats[i]);
+                }
             }
             res.json(chats);
         }
@@ -100,12 +127,12 @@ const getChats = async(req, res) => {
 const getMessages = async(req, res) => {
     console.log("getMessages");
     try {
-        let chat = chatModel.find({id: req.body.chatId});
+        let chat = chatModel.find({id: req.body.chat});
         if(chat) {
             let allMessages = await messageModel.find();
             let messages = [];
             for(let i = 0; i < allMessages.length; i++) {
-                if(allMessages[i].chat == req.body.chatId) messages.push(allMessages[i]);
+                if(allMessages[i].chat == req.body.chat) messages.push(allMessages[i]);
             }
             res.json(messages);
         }
@@ -122,7 +149,7 @@ const getMessages = async(req, res) => {
 module.exports = endPoints;
 
 //--header "Content-Type: application/json" --request POST --data "{\"username\": \"user_1\"}" http://localhost:9000/users/add
-//--header "Content-Type: application/json" --request POST --data "{\"name\": \"chat_1\", \"users\": [\"USER_ID_1\", \"USER_ID_2\"]}" http://localhost:9000/chats/add
-//--header "Content-Type: application/json" --request POST --data "{\"chat\": \"CHAT_ID\", \"author\": \"USER_ID\", \"text\": \"hi\"}" http://localhost:9000/messages/add
-//--header "Content-Type: application/json" --request POST --data "{\"user\": \"USER_ID\"}" http://localhost:9000/chats/get
-//--header "Content-Type: application/json" --request POST --data "{\"chat\": \"CHAT_ID\"}" http://localhost:9000/messages/get
+//--header "Content-Type: application/json" --request POST --data "{\"name\": \"chat_1\", \"users\": [\"60dd22d03311da4ef0b55e0b\", \"60dd23483311da4ef0b55e0c\"]}" http://localhost:9000/chats/add
+//--header "Content-Type: application/json" --request POST --data "{\"chat\": \"60ddfd8038eda24dec887ced\", \"author\": \"60dd2294e4d91e30b05ccbed\", \"text\": \"hi\"}" http://localhost:9000/messages/add
+//--header "Content-Type: application/json" --request POST --data "{\"user\": \"60dd22d03311da4ef0b55e0b\"}" http://localhost:9000/chats/get
+//--header "Content-Type: application/json" --request POST --data "{\"chat\": \"60ddfcbcd2283d34044ff6cb\"}" http://localhost:9000/messages/get
